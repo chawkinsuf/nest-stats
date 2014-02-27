@@ -1,0 +1,108 @@
+body {
+    padding-top:60px;
+}
+
+@media (min-width:768px) {
+	body > .container {
+		padding-left:40px;
+		padding-right:40px;
+	}
+}
+@media (min-width:992px) {
+	body > .container {
+		padding-left:40px;
+		padding-right:40px;
+	}
+}
+@media (min-width:1200px) {
+	body > .container {
+		padding-left:40px;
+		padding-right:40px;
+	}
+}
+
+.navbar-default .navbar-nav>li>a:hover, .navbar-default .navbar-nav>li>a:focus {
+	background-color:#f3f3f3;
+}
+
+.form-login.login-page {
+	max-width:330px;
+	padding:15px;
+	margin:0 auto;
+}
+.form-login h2 {
+	margin-bottom:10px;
+}
+.form-login .form-control {
+	position:relative;
+	height:auto;
+	-webkit-box-sizing:border-box;
+	 -moz-box-sizing:  border-box;
+	      box-sizing:  border-box;
+	padding:10px;
+	font-size:16px;
+}
+.form-login .form-control:focus {
+	z-index:2;
+}
+.form-login input[type="email"] {
+	margin-bottom:-1px;
+	border-bottom-right-radius:0;
+	border-bottom-left-radius:0;
+}
+.form-login input[type="password"] {
+	margin-bottom:10px;
+	border-top-left-radius:0;
+	border-top-right-radius:0;
+}
+
+ul.alert {
+	list-style-position:inside;
+}
+
+.row > .module > .module-inner {
+	padding:10px 5px;
+}
+
+.spinner {
+  display:inline-block;
+  opacity:0;
+  max-width:0;
+  -webkit-transition: opacity 0.15s, max-width 0.45s;
+     -moz-transition: opacity 0.15s, max-width 0.45s;
+       -o-transition: opacity 0.15s, max-width 0.45s;
+          transition: opacity 0.15s, max-width 0.45s;
+}
+.has-spinner.spinning {
+  cursor:progress;
+}
+.has-spinner.spinning .spinner {
+  opacity:1;
+  max-width:50px;
+}
+
+.alertify-logs {
+	top:10px;
+}
+.alertify,
+.alertify-show,
+.alertify-log {
+	-webkit-transition: all 500ms cubic-bezier(.03,.66,.16,1.29);
+	   -moz-transition: all 500ms cubic-bezier(.03,.66,.16,1.29);
+	    -ms-transition: all 500ms cubic-bezier(.03,.66,.16,1.29);
+	     -o-transition: all 500ms cubic-bezier(.03,.66,.16,1.29);
+	        transition: all 500ms cubic-bezier(.03,.66,.16,1.29); /* http://cubic-bezier.com/#.03,.66,.16,1.29 */
+}
+
+ul.device-list {
+	padding:12px 0 0 40px;
+}
+
+.highcharts-graph {
+	min-width:600px;
+	margin-top:15px;
+}
+
+.navbar-default .navbar-nav > .open > a {
+	background-image:none;
+}
