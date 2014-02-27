@@ -11,7 +11,7 @@
 |
 */
 
-Route::get('/', function()
-{
-	return View::make('hello');
-});
+Route::get('/', 'App\Controllers\Home@getIndex');
+
+Route::controller('users', 'App\Controllers\Users');
+Route::controller('graphs', 'App\Controllers\Graphs');
