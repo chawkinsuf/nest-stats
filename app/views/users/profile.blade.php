@@ -13,7 +13,7 @@
 				{{ Form::password( 'password_confirmation',  ['class'=>'form-control', 'placeholder'=>'Confirm Password'] ) }}
 			</div>
 			<div class="form-group">
-				{{ Form::text( 'nest_password', null, ['class'=>'form-control', 'placeholder'=>'Nest Password'] ) }}
+				{{ Form::text( 'nest_password', '', ['class'=>'form-control', 'placeholder'=>'Nest Password'] ) }}
 			</div>
 			{{ Form::submit( 'Update', ['class'=>'btn btn-lg btn-primary btn-block'] ) }}
 		{{ Form::close() }}
