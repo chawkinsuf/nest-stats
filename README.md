@@ -19,4 +19,6 @@ php bin/composer.phar update
 php artisan migrate:install
 php artisan migrate
 php artisan db:seed
+chgrp www-data -R storage/
+chmod g+w -R storage/
 ```
