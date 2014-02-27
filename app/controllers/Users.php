@@ -112,7 +112,9 @@ class Users extends Base {
 		// Update the record
 		$user = Auth::user();
 		$user->email = Input::get( 'email' );
-		$user->nest_password = Input::get( 'nest_password' ) == '' ? null : Input::get( 'nest_password' );
+		if ( Input::get( 'nest_password' ) != '' ){
+			$user->nest_password = Input::get( 'nest_password' );
+		}
 		if ( Input::get( 'password' ) != '' ){
 			$user->password = Input::get( 'password' );
 		}
