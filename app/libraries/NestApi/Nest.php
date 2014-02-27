@@ -1,4 +1,5 @@
 <?php
+namespace NestApi;
 
 define('DEBUG', FALSE);
 
@@ -41,7 +42,7 @@ class Nest {
     const protocol_version = 1;
     const login_url = 'https://home.nest.com/user/login';
     private $days_maps = array('Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun');
-    
+
     private $transport_url;
     private $access_token;
     private $user;
@@ -50,18 +51,36 @@ class Nest {
     private $cache_file;
     private $cache_expiration;
     private $last_status;
-    
-    function __construct() {
-        $this->cookie_file = sys_get_temp_dir() . '/nest_php_cookies_' . md5(USERNAME . PASSWORD);
-        $this->cache_file = sys_get_temp_dir() . '/nest_php_cache_' . md5(USERNAME . PASSWORD);
+
+    function __construct( $username, $password ) {
+        $this->username = $username;
+        $this->password = $password;
+        $this->cookie_file = sys_get_temp_dir() . '/nest_php_cookies_' . md5($username . $password);
+        $this->cache_file = sys_get_temp_dir() . '/nest_php_cache_' . md5($username . $password);
         if ($this->use_cache()) {
             $this->loadCache();
         }
         // Log in, if needed
         $this->login();
     }
-    
+
     /* Getters and setters */
+
+    public function getWeather($postal_code) {
+        try {
+            $weather = $this->doGET("https://home.nest.com/api/0.1/weather/forecast/" . $postal_code);
+        } catch (RuntimeException $ex) {
+            // NESTAPI_ERROR_NOT_JSON_RESPONSE is kinda normal. The forecast API will often return a '502 Bad Gateway' response... meh.
+            if ($ex->getCode() != NESTAPI_ERROR_NOT_JSON_RESPONSE) {
+                throw new RuntimeException("Unexpected issue fetching forecast.", $ex->getCode(), $ex);
+            }
+        }
+
+        return (object) array(
+            'outside_temperature' => isset($weather->now) ? $this->temperatureInUserScale((float) $weather->now->current_temperature) : NULL,
+            'outside_humidity'    => isset($weather->now) ? $weather->now->current_humidity : NULL
+        );
+    }
 
     public function getUserLocations() {
         $this->getStatus();
@@ -85,7 +104,7 @@ class Nest {
                 'outside_temperature' => isset($weather->now) ? $this->temperatureInUserScale((float) $weather->now->current_temperature) : NULL,
                 'away' => $structure->away,
                 'away_last_changed' => date('Y-m-d H:i:s', $structure->away_timestamp),
-                'thermostats' => array_map(array('Nest', 'cleanDevices'), $structure->devices)
+                'thermostats' => array_map(array('NestApi\\Nest', 'cleanDevices'), $structure->devices)
             );
         }
         return $user_structures;
@@ -113,16 +132,16 @@ class Nest {
                 $schedule[(int) $day] = array_values($events);
             }
         }
-        
+
         ksort($schedule);
         $sorted_schedule = array();
         foreach ($schedule as $day => $events) {
             $sorted_schedule[$this->days_maps[(int) $day]] = $events;
         }
-        
+
         return $sorted_schedule;
     }
-    
+
     public function getNextScheduledEvent($serial_number=null) {
         $schedule = $this->getDeviceSchedule($serial_number);
         $next_event = FALSE;
@@ -189,7 +208,7 @@ class Nest {
 
         return $infos;
     }
-  
+
     public function getEnergyLatest($serial_number=null) {
         $serial_number = $this->getDefaultSerial($serial_number);
 
@@ -200,7 +219,7 @@ class Nest {
         );
 
         $url = '/v5/subscribe';
-    
+
         return $this->doPOST($url, json_encode($payload));
     }
 
@@ -237,7 +256,7 @@ class Nest {
         $data = json_encode(array('target_change_pending' => TRUE, 'target_temperature' => $temperature));
         return $this->doPOST("/v2/put/shared." . $serial_number, $data);
     }
-    
+
     public function setTargetTemperatures($temp_low, $temp_high, $serial_number=null) {
         $serial_number = $this->getDefaultSerial($serial_number);
         $temp_low = $this->temperatureInCelsius($temp_low, $serial_number);
@@ -324,7 +343,7 @@ class Nest {
         $structure_id = $this->getDeviceInfo($serial_number)->location;
         return $this->doPOST("/v2/put/structure." . $structure_id, $data);
     }
-    
+
     public function setAutoAwayEnabled($enabled, $serial_number=null) {
         $serial_number = $this->getDefaultSerial($serial_number);
         $data = json_encode(array('auto_away_enable' => $enabled));
@@ -459,7 +478,7 @@ class Nest {
             // No need to login; we'll use cached values for authentication.
             return;
         }
-        $result = $this->doPOST(self::login_url, array('username' => USERNAME, 'password' => PASSWORD));
+        $result = $this->doPOST(self::login_url, array('username' => $this->username, 'password' => $this->password));
         if (!isset($result->urls)) {
             die("Error: Response to login request doesn't contain required transport URL. Response: '" . var_export($result, TRUE) . "'\n");
         }
@@ -474,7 +493,7 @@ class Nest {
     private function use_cache() {
         return file_exists($this->cookie_file) && file_exists($this->cache_file) && !empty($this->cache_expiration) && $this->cache_expiration > time();
     }
-    
+
     private function loadCache() {
         $vars = unserialize(file_get_contents($this->cache_file));
         $this->transport_url = $vars['transport_url'];
@@ -484,7 +503,7 @@ class Nest {
         $this->cache_expiration = $vars['cache_expiration'];
         $this->last_status = $vars['last_status'];
     }
-    
+
     private function saveCache() {
         $vars = array(
             'transport_url' => $this->transport_url,
@@ -500,7 +519,7 @@ class Nest {
     private function doGET($url) {
         return $this->doRequest('GET', $url);
     }
-    
+
     private function doPOST($url, $data_fields) {
         return $this->doRequest('POST', $url, $data_fields);
     }
@@ -530,7 +549,7 @@ class Nest {
         curl_setopt($ch, CURLOPT_HEADER, FALSE);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, TRUE);
         curl_setopt($ch, CURLOPT_AUTOREFERER, TRUE);
-        curl_setopt($ch, CURLOPT_USERAGENT, self::user_agent); 
+        curl_setopt($ch, CURLOPT_USERAGENT, self::user_agent);
         curl_setopt($ch, CURLOPT_COOKIEJAR, $this->cookie_file);
         curl_setopt($ch, CURLOPT_COOKIEFILE, $this->cookie_file);
         if ($method == 'POST') {
@@ -558,7 +577,7 @@ class Nest {
         }
         $response = curl_exec($ch);
         $info = curl_getinfo($ch);
-        
+
         if ($info['http_code'] == 401 || (!$response && curl_errno($ch) != 0)) {
             if ($with_retry && $this->use_cache()) {
                 // Received 401, and was using cached data; let's try to re-login and retry.
@@ -572,7 +591,7 @@ class Nest {
                 throw new RuntimeException("Error: HTTP request to $url returned an error: " . curl_error($ch), curl_errno($ch));
             }
         }
-        
+
         $json = json_decode($response);
         if (!is_object($json) && ($method == 'GET' || $url == self::login_url)) {
             if (strpos($response, "currently performing maintenance on your Nest account") !== FALSE) {
