@@ -2,6 +2,19 @@
 
 /*
 |--------------------------------------------------------------------------
+| View composer entries
+|--------------------------------------------------------------------------
+|
+| Send some data to views, however they are loaded.
+|
+*/
+
+View::composer('layouts.main', function( $view ){
+
+});
+
+/*
+|--------------------------------------------------------------------------
 | Application & Route Filters
 |--------------------------------------------------------------------------
 |
@@ -35,7 +48,7 @@ App::after(function($request, $response)
 
 Route::filter('auth', function()
 {
-	if (Auth::guest()) return Redirect::guest('login');
+	if (Auth::guest()) return Redirect::guest('users/login')->with('message', 'You must login to access that page');
 });
 
 
