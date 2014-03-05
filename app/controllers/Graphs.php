@@ -37,13 +37,13 @@ class Graphs extends Base {
 
 			$data['temperature'][] 			= [ $datems, (float) $dataPoint->temperature ];
 			$data['outside_temperature'][] 	= [ $datems, (float) $dataPoint->outside_temperature ];
-			$data['humidity'][] 			= [ $datems, (float) $dataPoint->humidity ];
-			$data['outside_humidity'][] 	= [ $datems, (float) $dataPoint->outside_humidity ];
+			$data['humidity'][] 			= [ $datems, (int) $dataPoint->humidity ];
+			$data['outside_humidity'][] 	= [ $datems, (int) $dataPoint->outside_humidity ];
 
-			$data['fan'][] 					= [ $datems, (float) $dataPoint->fan ];
-			$data['ac'][] 					= [ $datems, (float) $dataPoint->ac ];
-			$data['heat'][] 				= [ $datems, (float) $dataPoint->heat ];
-			$data['alt_heat'][] 			= [ $datems, (float) $dataPoint->alt_heat ];
+			$data['fan'][] 					= [ $datems, (int) $dataPoint->fan ];
+			$data['ac'][] 					= [ $datems, (int) $dataPoint->ac ];
+			$data['heat'][] 				= [ $datems, (int) $dataPoint->heat ];
+			$data['alt_heat'][] 			= [ $datems, (int) $dataPoint->alt_heat ];
 		}
 
 		return Response::json( $data );
