@@ -1,6 +1,7 @@
 <?php
 namespace App\Controllers;
 
+use Exception;
 use Auth, View, Input, Redirect, Response, Validator;
 use App\Models\User, App\Models\Device;
 use NestApi\Nest;
@@ -53,8 +54,14 @@ class Users extends Base {
 	}
 
 	public function getDevices(){
-		$nest = new Nest( Auth::user()->email, Auth::user()->nest_password );
-		$locations = $nest->getUserLocations();
+
+		try {
+			$nest = new Nest( Auth::user()->email, Auth::user()->nest_password );
+			$locations = $nest->getUserLocations();
+		} catch ( Exception $e ){
+			return Response::json([ 'error' => true, 'message' => 'Device update failed: '.$e->getMessage() ]);
+		}
+
 		$devices = [];
 		foreach ( $locations as $location ){
 			foreach ( $location->thermostats as $serial ){
@@ -66,8 +73,10 @@ class Users extends Base {
 					continue;
 				}
 
-				// Get the device information and store it
+				// Get the device information
 				$deviceData = $nest->getDeviceInfo( $serial );
+
+				// Save a new record in the database
 				$device = new Device;
 				$device->user_id = Auth::user()->id;
 				$device->serial = $serial;
@@ -75,11 +84,13 @@ class Users extends Base {
 				$device->postal = $location->postal_code;
 				$device->tracking = false;
 				$device->save();
+
+				// Put the record in our list
 				$devices[] = $device->toArray();
 			}
 		}
 
-		return Response::json([ 'success' => true, 'devices' => $devices ]);
+		return Response::json([ 'message' => 'Devices updated', 'devices' => $devices ]);
 	}
 
 	public function getProfile(){

@@ -67,7 +67,7 @@ $(function() {
 				return;
 			}
 
-			alertify.success( 'Devices updated' );
+			alertify.success( data.message );
 			$('ul.device-list').html( handlebarsDeviceList( data ) );
 		})
 		.fail(function( jqXHR, textStatus, errorThrown ){
@@ -79,18 +79,18 @@ $(function() {
 		});
 	});
 
-	$('.form-update').ajaxform({
-		done: function( data, textStatus, jqXHR ) {
-			if ( !data || data.error ) {
-				alertify.error( data.message || 'There was a problem updating your profile' );
-				return;
-			}
-			alertify.success( 'Model added' );
-		},
-		fail: function( jqXHR, textStatus, errorThrown ) {
-			alertify.error( 'There was a problem updating your profile: ' + errorThrown );
-		}
-	});
+	// $('.form-update').ajaxform({
+	// 	done: function( data, textStatus, jqXHR ) {
+	// 		if ( !data || data.error ) {
+	// 			alertify.error( data.message || 'There was a problem updating your profile' );
+	// 			return;
+	// 		}
+	// 		alertify.success( 'Model added' );
+	// 	},
+	// 	fail: function( jqXHR, textStatus, errorThrown ) {
+	// 		alertify.error( 'There was a problem updating your profile: ' + errorThrown );
+	// 	}
+	// });
 });
 </script>
 
