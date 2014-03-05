@@ -9,7 +9,7 @@ class UserTableSeeder extends Seeder
 		App\Models\User::create(array(
 			'email'    => 'chawkinsuf@gmail.com',
 			'password' => '123456',
-			'nest_password' => '51gBJAh*yOEN*SK'
+			'nest_password' => ''
 		));
 	}
 
