@@ -15,6 +15,7 @@
 
 	{{ HTML::script('lib/jquery/jquery.min.js') }}
 	{{ HTML::script('lib/jquery/jquery-ui.widget.min.js') }}
+	{{ HTML::script('lib/enquire/enquire.min.js') }}
 	{{ HTML::script('lib/bootstrap/js/bootstrap.min.js') }}
 	{{ HTML::script('lib/handlebars/handlebars.js') }}
 	{{ HTML::script('lib/alertify/js/alertify.min.js') }}
@@ -77,10 +78,11 @@
 		@endif
 
 		@if ( Session::has('message') )
-		<p class="alert alert-info alert-dismissable">
-			<button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
-			{{ Session::get('message') }}
-		</p>
+		<script type="text/javascript">
+		$(function(){
+			alertify.log('{{{ Session::get('message') }}}');
+		});
+		</script>
 		@endif
 
 		{{ $content }}
