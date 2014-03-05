@@ -99,8 +99,15 @@ ul.device-list {
 }
 
 .highcharts-graph {
-	min-width:600px;
 	margin-top:15px;
+	height:600px;
+}
+
+@media (max-width:650px) {
+	.highcharts-graph {
+		margin-top:15px;
+		height:400px;
+	}
 }
 
 .navbar-default .navbar-nav > .open > a {
