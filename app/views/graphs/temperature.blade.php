@@ -5,7 +5,13 @@ $(function() {
 	var chart = null;
 	var chartOptions = {
 		chart: {
-			renderTo: 'temperature-graph'
+			renderTo: 'temperature-graph',
+			events: {
+				selection: function( event ){
+					// Prevent reset zoom button
+					event.preventDefault();
+				}
+			}
 		},
 		colors: [
 			'#2f7ed8',
@@ -32,13 +38,19 @@ $(function() {
 		},
 		rangeSelector : {
 			enabled: true,
-			inputEnabled: true,
 			selected : 0,
+			labelStyle: {
+				display: 'inline'
+			},
 			buttons: [
 				{ type: 'day', count: 1, text: '1d' },
+				{ type: 'day', count: 2, text: '2d' },
+				{ type: 'day', count: 3, text: '3d' },
+				{ type: 'day', count: 5, text: '5d' },
 				{ type: 'week', count: 1, text: '1w' },
 				{ type: 'week', count: 2, text: '2w' },
-				{ type: 'month', count: 1, text: '1m' }
+				{ type: 'month', count: 1, text: '1m' },
+				{ type: 'all', count: 1, text: 'All' }
 			]
 		},
 		navigator: {
@@ -54,7 +66,7 @@ $(function() {
 				$.each( this.points, function( i, point ){
 					if ( /Temperature/.test(point.series.name) ){
 						s += '<br/><span style="fill:' + point.series.color + '">' + point.series.name + '</span><span>: </span>';
-						s += '<span style="font-weight:bold">' + point.y + '</span>';
+						s += '<span style="font-weight:bold">' + point.y.toFixed(3) + '</span>';
 					}
 				});
 				return s;
@@ -102,9 +114,7 @@ $(function() {
 			y: 0
 		},
 		rangeSelector: {
-			labelStyle: {
-				display: 'none'
-			}
+			inputEnabled: false
 		},
 		navigator: {
 			height: 20
@@ -132,9 +142,7 @@ $(function() {
 			y: -8
 		},
 		rangeSelector: {
-			labelStyle: {
-				display: 'inline'
-			}
+			inputEnabled: true
 		},
 		navigator: {
 			height: 40
