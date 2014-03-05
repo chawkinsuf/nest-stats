@@ -6,12 +6,7 @@ $(function() {
 	var chartOptions = {
 		chart: {
 			renderTo: 'temperature-graph',
-			events: {
-				selection: function( event ){
-					// Prevent reset zoom button
-					event.preventDefault();
-				}
-			}
+			zoomType: 'x'
 		},
 		colors: [
 			'#2f7ed8',
