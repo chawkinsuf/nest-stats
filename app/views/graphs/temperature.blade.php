@@ -6,7 +6,16 @@ $(function() {
 	var chartOptions = {
 		chart: {
 			renderTo: 'temperature-graph',
+			marginLeft: 25,
 			zoomType: 'x'
+		},
+		exporting: {
+			buttons: {
+				contextButton: {
+					symbol: 'triangle-down',
+					symbolStrokeWidth: 1
+				}
+			}
 		},
 		colors: [
 			'#2f7ed8',
@@ -20,23 +29,15 @@ $(function() {
 			text: 'Temperature Data',
 			align: 'left',
 			x: 20,
-			y: 25,
-			style: {
-				fontSize: '28px'
-			}
+			y: 20,
 		},
 		legend: {
-			width: 295,
 			shadow: true,
 			enabled: true,
-			itemDistance: 16,
 		},
 		rangeSelector : {
 			enabled: true,
 			selected : 0,
-			labelStyle: {
-				display: 'inline'
-			},
 			buttons: [
 				{ type: 'day', count: 1, text: '1d' },
 				{ type: 'day', count: 2, text: '2d' },
@@ -101,7 +102,14 @@ $(function() {
 			sourceWidth: 700,
 			sourceHeight: 400
 		},
+		title: {
+			style: {
+				fontSize: '24px'
+			}
+		},
 		legend: {
+			width: 272,
+			itemDistance: 4,
 			verticalAlign: 'bottom',
 			align: 'center',
 			floating: false,
@@ -109,14 +117,18 @@ $(function() {
 			y: 0
 		},
 		rangeSelector: {
-			inputEnabled: false
+			inputEnabled: false,
+			labelStyle: {
+				display: 'none'
+			}
 		},
 		navigator: {
 			height: 20
 		},
 		yAxis: [{
 			height: 155,
-			startOnTick: false
+			startOnTick: false,
+			tickPixelInterval: 48
 		},{
 			top: 250,
 			height: 40
@@ -129,7 +141,14 @@ $(function() {
 			sourceWidth: 1050,
 			sourceHeight: 600
 		},
+		title: {
+			style: {
+				fontSize: '28px'
+			}
+		},
 		legend: {
+			width: 295,
+			itemDistance: 16,
 			verticalAlign: 'top',
 			align: 'right',
 			floating: true,
@@ -137,14 +156,18 @@ $(function() {
 			y: -8
 		},
 		rangeSelector: {
-			inputEnabled: true
+			inputEnabled: true,
+			labelStyle: {
+				display: 'inline'
+			}
 		},
 		navigator: {
 			height: 40
 		},
 		yAxis: [{
 			height: 360,
-			startOnTick: true
+			startOnTick: true,
+			tickPixelInterval: 72
 		},{
 			top: 455,
 			height: 60
