@@ -31,6 +31,8 @@ define('AWAY_MODE_OFF', FALSE);
 define('DUALFUEL_BREAKPOINT_ALWAYS_PRIMARY', 'always-primary');
 define('DUALFUEL_BREAKPOINT_ALWAYS_ALT', 'always-alt');
 define('DEVICE_WITH_NO_NAME', 'Not Set');
+define('DEVICE_TYPE_THERMOSTAT', 'thermostat');
+define('DEVICE_TYPE_PROTECT', 'protect');
 
 define('NESTAPI_ERROR_UNDER_MAINTENANCE', 1000);
 define('NESTAPI_ERROR_EMPTY_RESPONSE', 1001);
@@ -44,6 +46,26 @@ class Nest {
     const login_url = 'https://home.nest.com/user/login';
     private $days_maps = array('Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun');
 
+    private $where_map = array(
+        '00000000-0000-0000-0000-000100000000' => 'Entryway',
+        '00000000-0000-0000-0000-000100000001' => 'Basement',
+        '00000000-0000-0000-0000-000100000002' => 'Hallway',
+        '00000000-0000-0000-0000-000100000003' => 'Den',
+        '00000000-0000-0000-0000-000100000004' => 'Attic', // Invisible in web UI
+        '00000000-0000-0000-0000-000100000005' => 'Master Bedroom',
+        '00000000-0000-0000-0000-000100000006' => 'Downstairs',
+        '00000000-0000-0000-0000-000100000007' => 'Garage', // Invisible in web UI
+        '00000000-0000-0000-0000-000100000008' => 'Kids Room',
+        '00000000-0000-0000-0000-000100000009' => 'Garage "Hallway"', // Invisible in web UI
+        '00000000-0000-0000-0000-00010000000a' => 'Kitchen',
+        '00000000-0000-0000-0000-00010000000b' => 'Family Room',
+        '00000000-0000-0000-0000-00010000000c' => 'Living Room',
+        '00000000-0000-0000-0000-00010000000d' => 'Bedroom',
+        '00000000-0000-0000-0000-00010000000e' => 'Office',
+        '00000000-0000-0000-0000-00010000000f' => 'Upstairs',
+        '00000000-0000-0000-0000-000100000010' => 'Dining Room',
+    );
+    
     private $transport_url;
     private $access_token;
     private $user;
@@ -52,7 +74,7 @@ class Nest {
     private $cache_file;
     private $cache_expiration;
     private $last_status;
-
+    
     function __construct($username=null, $password=null) {
         if ($username === null && defined('USERNAME')) {
             $username = USERNAME;
@@ -65,15 +87,20 @@ class Nest {
         }
         $this->username = $username;
         $this->password = $password;
+
         $this->cookie_file = sys_get_temp_dir() . '/nest_php_cookies_' . md5($username . $password);
+        static::secure_touch($this->cookie_file);
+
         $this->cache_file = sys_get_temp_dir() . '/nest_php_cache_' . md5($username . $password);
-        if ($this->use_cache()) {
-            $this->loadCache();
-        }
+        
+        // Attempt to load the cache
+        $this->loadCache();
+        static::secure_touch($this->cache_file);
+        
         // Log in, if needed
         $this->login();
     }
-
+    
     /* Getters and setters */
 
     public function getWeather($postal_code) {
@@ -97,7 +124,16 @@ class Nest {
         $structures = (array) $this->last_status->structure;
         $user_structures = array();
         $class_name = get_class($this);
-        foreach ($structures as $structure) {
+        $topaz = isset($this->last_status->topaz) ? $this->last_status->topaz : array();
+        foreach ($structures as $struct_id => $structure) {
+            // Nest Protects at this location (structure)
+            $protects = array();
+            foreach ($topaz as $protect) {
+                if ($protect->structure_id == $struct_id) {
+                    $protects[] = $protect->serial_number;
+                }
+            }
+
             $weather_data = $this->getWeather($structure->postal_code);
             $user_structures[] = (object) array(
                 'name' => $structure->name,
@@ -109,7 +145,8 @@ class Nest {
                 'outside_humidity' => $weather_data->outside_humidity,
                 'away' => $structure->away,
                 'away_last_changed' => date('Y-m-d H:i:s', $structure->away_timestamp),
-                'thermostats' => array_map(array($class_name, 'cleanDevices'), $structure->devices)
+                'thermostats' => array_map(array($class_name, 'cleanDevices'), $structure->devices),
+                'protects' => $protects,
             );
         }
         return $user_structures;
@@ -137,16 +174,16 @@ class Nest {
                 $schedule[(int) $day] = array_values($events);
             }
         }
-
+        
         ksort($schedule);
         $sorted_schedule = array();
         foreach ($schedule as $day => $events) {
             $sorted_schedule[$this->days_maps[(int) $day]] = $events;
         }
-
+        
         return $sorted_schedule;
     }
-
+    
     public function getNextScheduledEvent($serial_number=null) {
         $schedule = $this->getDeviceSchedule($serial_number);
         $next_event = FALSE;
@@ -167,6 +204,46 @@ class Nest {
     public function getDeviceInfo($serial_number=null) {
         $this->getStatus();
         $serial_number = $this->getDefaultSerial($serial_number);
+
+        $topaz = isset($this->last_status->topaz) ? $this->last_status->topaz : array();
+        foreach ($topaz as $protect) {
+            if ($serial_number == $protect->serial_number) {
+                // The specified device is a Nest Protect
+                $infos = (object) array(
+                    'co_status' => $protect->co_status,
+                    'smoke_status' => $protect->smoke_status,
+                    'line_power_present' => $protect->line_power_present,
+                    'battery_level' => $protect->battery_level,
+                    'battery_health_state' => $protect->battery_health_state,
+                    'replace_by_date' => date('Y-m-d', $protect->replace_by_date_utc_secs),
+                    'last_update' => date('Y-m-d H:i:s', $protect->{'$timestamp'}/1000),
+                    'last_manual_test' => $protect->latest_manual_test_start_utc_secs == 0 ? NULL : date('Y-m-d H:i:s', $protect->latest_manual_test_start_utc_secs),
+                    'tests_passed' => array(
+                        'led'   => $protect->component_led_test_passed,
+                        'pir'   => $protect->component_pir_test_passed,
+                        'temp'  => $protect->component_temp_test_passed,
+                        'smoke' => $protect->component_smoke_test_passed,
+                        'heat'  => $protect->component_heat_test_passed,
+                        'wifi'  => $protect->component_wifi_test_passed,
+                        'als'   => $protect->component_als_test_passed,
+                        'co'    => $protect->component_co_test_passed,
+                        'us'    => $protect->component_us_test_passed,
+                        'hum'   => $protect->component_hum_test_passed,
+                    ),
+                    'serial_number' => $protect->serial_number,
+                    'location' => $protect->structure_id,
+                    'network' => (object) array(
+                        'online' => $protect->component_wifi_test_passed,
+                        'local_ip' => $protect->wifi_ip_address,
+                        'mac_address' => $protect->wifi_mac_address
+                    ),
+                    'name' => !empty($protect->description) ? $protect->description : DEVICE_WITH_NO_NAME,
+                    'where' => isset($this->where_map[$protect->spoken_where_id]) ? $this->where_map[$protect->spoken_where_id] : $protect->spoken_where_id,
+                );
+                return $infos;
+            }
+        }
+
         list(, $structure) = explode('.', $this->last_status->link->{$serial_number}->structure);
         $manual_away = $this->last_status->structure->{$structure}->away;
         $mode = strtolower($this->last_status->device->{$serial_number}->current_schedule_mode);
@@ -193,6 +270,7 @@ class Nest {
                 'auto_away' => $this->last_status->shared->{$serial_number}->auto_away, // -1 when disabled, 0 when enabled (thermostat can set auto-away), >0 when enabled and active (thermostat is currently in auto-away mode)
                 'manual_away' => $manual_away,
                 'leaf' => $this->last_status->device->{$serial_number}->leaf,
+                'battery_level' => $this->last_status->device->{$serial_number}->battery_level,
             ),
             'target' => (object) array(
                 'mode' => $target_mode,
@@ -203,7 +281,8 @@ class Nest {
             'scale' => $this->last_status->device->{$serial_number}->temperature_scale,
             'location' => $structure,
             'network' => $this->getDeviceNetworkInfo($serial_number),
-            'name' => !empty($this->last_status->shared->{$serial_number}->name) ? $this->last_status->shared->{$serial_number}->name : DEVICE_WITH_NO_NAME
+            'name' => !empty($this->last_status->shared->{$serial_number}->name) ? $this->last_status->shared->{$serial_number}->name : DEVICE_WITH_NO_NAME,
+            'where' => isset($this->last_status->device->{$serial_number}->where_id) ? isset($this->where_map[$this->last_status->device->{$serial_number}->where_id]) ? $this->where_map[$this->last_status->device->{$serial_number}->where_id] : $this->last_status->device->{$serial_number}->where_id : ""
         );
         if($this->last_status->device->{$serial_number}->has_humidifier) {
           $infos->current_state->humidifier= $this->last_status->device->{$serial_number}->humidifier_state;
@@ -213,7 +292,7 @@ class Nest {
 
         return $infos;
     }
-
+  
     public function getEnergyLatest($serial_number=null) {
         $serial_number = $this->getDefaultSerial($serial_number);
 
@@ -224,7 +303,7 @@ class Nest {
         );
 
         $url = '/v5/subscribe';
-
+    
         return $this->doPOST($url, json_encode($payload));
     }
 
@@ -261,7 +340,7 @@ class Nest {
         $data = json_encode(array('target_change_pending' => TRUE, 'target_temperature' => $temperature));
         return $this->doPOST("/v2/put/shared." . $serial_number, $data);
     }
-
+    
     public function setTargetTemperatures($temp_low, $temp_high, $serial_number=null) {
         $serial_number = $this->getDefaultSerial($serial_number);
         $temp_low = $this->temperatureInCelsius($temp_low, $serial_number);
@@ -348,7 +427,7 @@ class Nest {
         $structure_id = $this->getDeviceInfo($serial_number)->location;
         return $this->doPOST("/v2/put/structure." . $structure_id, $data);
     }
-
+    
     public function setAutoAwayEnabled($enabled, $serial_number=null) {
         $serial_number = $this->getDefaultSerial($serial_number);
         $data = json_encode(array('auto_away_enable' => $enabled));
@@ -381,7 +460,7 @@ class Nest {
     /* Helper functions */
 
     public function getStatus() {
-        $status = $this->doGET("/v2/mobile/" . $this->user);
+        $status = $this->doGET("/v3/mobile/" . $this->user);
         if (!is_object($status)) {
             die("Error: Couldn't get status from NEST API: $status\n");
         }
@@ -418,8 +497,15 @@ class Nest {
         return $this->last_status->device->{$serial_number}->temperature_scale;
     }
 
-    public function getDevices() {
+    public function getDevices($type=DEVICE_TYPE_THERMOSTAT) {
         $this->prepareForGet();
+        if ($type == DEVICE_TYPE_PROTECT) {
+            $protects = array();
+            foreach ($this->last_status->topaz as $protect) {
+                $protects[] = $protect->serial_number;
+            }
+            return $protects;
+        }
         $structure = $this->last_status->user->{$this->userid}->structures[0];
         list(, $structure_id) = explode('.', $structure);
         $devices_serials = array();
@@ -433,13 +519,16 @@ class Nest {
     private function getDefaultSerial($serial_number) {
         if (empty($serial_number)) {
             $devices_serials = $this->getDevices();
+            if (count($devices_serials) == 0) {
+                $devices_serials = $this->getDevices(DEVICE_TYPE_PROTECT);
+            }
             $serial_number = $devices_serials[0];
         }
         return $serial_number;
     }
 
     public function getDefaultDevice() {
-        $serial_number = $this->getDefaultSerial();
+        $serial_number = $this->getDefaultSerial(null);
         return $this->last_status->device->{$serial_number};
     }
 
@@ -498,9 +587,15 @@ class Nest {
     private function use_cache() {
         return file_exists($this->cookie_file) && file_exists($this->cache_file) && !empty($this->cache_expiration) && $this->cache_expiration > time();
     }
-
+    
     private function loadCache() {
-        $vars = unserialize(file_get_contents($this->cache_file));
+        if (!file_exists($this->cache_file)) {
+            return;
+        }
+        $vars = @unserialize(file_get_contents($this->cache_file));
+        if ($vars === false) {
+            return;
+        }
         $this->transport_url = $vars['transport_url'];
         $this->access_token = $vars['access_token'];
         $this->user = $vars['user'];
@@ -508,7 +603,7 @@ class Nest {
         $this->cache_expiration = $vars['cache_expiration'];
         $this->last_status = $vars['last_status'];
     }
-
+    
     private function saveCache() {
         $vars = array(
             'transport_url' => $this->transport_url,
@@ -524,7 +619,7 @@ class Nest {
     private function doGET($url) {
         return $this->doRequest('GET', $url);
     }
-
+    
     private function doPOST($url, $data_fields) {
         return $this->doRequest('POST', $url, $data_fields);
     }
@@ -554,7 +649,7 @@ class Nest {
         curl_setopt($ch, CURLOPT_HEADER, FALSE);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, TRUE);
         curl_setopt($ch, CURLOPT_AUTOREFERER, TRUE);
-        curl_setopt($ch, CURLOPT_USERAGENT, self::user_agent);
+        curl_setopt($ch, CURLOPT_USERAGENT, self::user_agent); 
         curl_setopt($ch, CURLOPT_COOKIEJAR, $this->cookie_file);
         curl_setopt($ch, CURLOPT_COOKIEFILE, $this->cookie_file);
         if ($method == 'POST') {
@@ -569,6 +664,7 @@ class Nest {
         } else {
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, TRUE); // for security this should always be set to true.
             curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);    // for security this should always be set to 2.
+            curl_setopt($ch, CURLOPT_SSLVERSION, 1);        // Nest servers now require TLSv1; won't work with SSLv2 or even SSLv3!
 
             // Update cacert.pem (valid CA certificates list) from the cURL website once a month
             $curl_cainfo = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'cacert.pem';
@@ -582,7 +678,7 @@ class Nest {
         }
         $response = curl_exec($ch);
         $info = curl_getinfo($ch);
-
+        
         if ($info['http_code'] == 401 || (!$response && curl_errno($ch) != 0)) {
             if ($with_retry && $this->use_cache()) {
                 // Received 401, and was using cached data; let's try to re-login and retry.
@@ -596,7 +692,7 @@ class Nest {
                 throw new RuntimeException("Error: HTTP request to $url returned an error: " . curl_error($ch), curl_errno($ch));
             }
         }
-
+        
         $json = json_decode($response);
         if (!is_object($json) && ($method == 'GET' || $url == self::login_url)) {
             if (strpos($response, "currently performing maintenance on your Nest account") !== FALSE) {
@@ -621,5 +717,13 @@ class Nest {
         }
 
         return $json;
+    }
+
+    private static function secure_touch($fname) {
+        if (file_exists($fname)) {
+            return;
+        }
+        $temp = tempnam(sys_get_temp_dir(), 'NEST');
+        rename($temp, $fname);
     }
 }
