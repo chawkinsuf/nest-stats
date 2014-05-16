@@ -1,7 +1,25 @@
 <div id="temperature-graph" class="highcharts-graph"></div>
+<div id="data-sets"></div>
 
 <script type="text/javascript">
 $(function() {
+	$('#data-sets').treeview({ data: {{ $dataSets }}, levels: 1, nodeIcon: 'glyphicon glyphicon-repeat', selectLeafOnly: true, noDeselect: true })
+	.on('nodeSelected', function(event, node) {
+		$.getJSON('{{ URL::to('graphs/data') }}/' + node.dataSetId, function( data ){
+
+			// Make our series data
+			var seriesData = formatSeriesData( data );
+
+			// Update each series in the chart
+			$.each( seriesData.series, function( index, value ){
+				chart.series[ index ].setData( value.data, false );
+			});
+
+			// Redraw all at once
+			chart.redraw();
+		});
+	});
+
 	var chart = null;
 	var chartOptions = {
 		chart: {
@@ -212,6 +230,22 @@ $(function() {
 	$.getJSON('{{ URL::to('graphs/data') }}', function( data ){
 
 		// Make our series data
+		var seriesData = formatSeriesData( data );
+
+		// Add the data to our options
+		$.extend( true, chartOptions, seriesData );
+
+		// Add default options if needed
+		if ( ! chartOptions.optionsSet ){
+			$.extend( true, chartOptions, optionsDefault );
+		}
+
+		// Render the chart
+		chart = new Highcharts.StockChart( chartOptions );
+	});
+
+	function formatSeriesData( data ){
+
 		var seriesData = {
 			series : [{
 				name: 'Inside Temperature',
@@ -234,23 +268,14 @@ $(function() {
 				yAxis: 1,
 				data: data['heat']
 			},{
-				name: 'Alt Heat',
+				name: 'Aux Heat',
 				yAxis: 1,
-				data: data['alt_heat']
+				data: data['aux_heat']
 			}]
 		};
 
-		// Add the data to our options
-		$.extend( true, chartOptions, seriesData );
-
-		// Add default options if needed
-		if ( ! chartOptions.optionsSet ){
-			$.extend( true, chartOptions, optionsDefault );
-		}
-
-		// Render the chart
-		chart = new Highcharts.StockChart( chartOptions );
-	});
+		return seriesData;
+	}
 
 });
 </script>

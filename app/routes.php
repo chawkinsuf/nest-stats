@@ -15,3 +15,5 @@ Route::get('/', 'App\Controllers\Home@getIndex');
 
 Route::controller('users', 'App\Controllers\Users');
 Route::controller('graphs', 'App\Controllers\Graphs');
+
+Route::get( 'graphs/data/{deviceId?}/{dataSetId?}', 'App\Controllers\Graphs')->where([ 'deviceId' => '[0-9]+', 'dataSetId' => '[0-9]+' ]);

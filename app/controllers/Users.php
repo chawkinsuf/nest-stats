@@ -3,7 +3,7 @@ namespace App\Controllers;
 
 use Exception;
 use Auth, View, Input, Redirect, Response, Validator;
-use App\Models\User, App\Models\Device;
+use App\Models\User, App\Models\Device, App\Models\Tracking;
 use NestApi\Nest;
 
 class Users extends Base {
@@ -81,8 +81,8 @@ class Users extends Base {
 				$device->user_id = Auth::user()->id;
 				$device->serial = $serial;
 				$device->name = $deviceData->name;
+				$device->scale = $deviceData->scale;
 				$device->postal = $location->postal_code;
-				$device->tracking = false;
 				$device->save();
 
 				// Put the record in our list
@@ -91,6 +91,43 @@ class Users extends Base {
 		}
 
 		return Response::json([ 'message' => 'Devices updated', 'devices' => $devices ]);
+	}
+
+	public function getStartTracking(){
+
+		// Get the inputs
+		$active = Input::get( 'active' );
+		$deviceId = Input::get( 'deviceId' );
+
+		// Check the value of active
+		if ( $active != '1' && $active != '0' ){
+			return Response::json([ 'error' => true, 'message' => 'Invalid parameters' ]);
+		}
+
+		// Get the device model
+		$device = Device::find( $deviceId );
+		if ( $device === null || $device->user->id != Auth::user()->id ){
+			return Response::json([ 'error' => true, 'message' => 'Unauthorized device' ]);
+		}
+
+		// Look for a tracking object
+		$tracking = $device->tracking()->first();
+
+		// Create one if needed
+		if ( $tracking === null ){
+			$tracking = new Tracking;
+			$tracking->active = $active;
+			$tracking->minute = 0;
+			$device->tracking()->save( $tracking );
+		}
+
+		// Otherwise update it
+		else {
+			$tracking->active = $active;
+			$tracking->save();
+		}
+
+		return Response::json([ 'message' => $active ? 'Tracking started' : 'Tracking stopped' ]);
 	}
 
 	public function getProfile(){
