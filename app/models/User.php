@@ -70,7 +70,10 @@ class User extends Eloquent implements UserInterface, RemindableInterface {
 	 */
 	public function setNestPasswordAttribute( $value )
 	{
-		$this->attributes['nest_password'] = Crypt::encrypt( $value );
+		if ( $value !== null ) {
+			$value = Crypt::encrypt( $value );
+		}
+		$this->attributes['nest_password'] = $value;
 	}
 
 	/**
@@ -81,10 +84,10 @@ class User extends Eloquent implements UserInterface, RemindableInterface {
 	 */
 	public function getNestPasswordAttribute( $value )
 	{
-		if ( $value === null ){
-			return null;
+		if ( $value !== null ){
+			$value = Crypt::decrypt( $value );
 		}
-		return Crypt::decrypt( $value );
+		return $value;
 	}
 
 	/**
@@ -96,4 +99,5 @@ class User extends Eloquent implements UserInterface, RemindableInterface {
 	{
 		return $this->hasMany('App\Models\Device');
 	}
+
 }

@@ -15,13 +15,23 @@ class Device extends Eloquent {
 	}
 
 	/**
-	 * Define the data_points table relationship
+	 * Define the data_sets table relationship
 	 *
 	 * @return mixed
 	 */
-	public function dataPoints()
+	public function dataSets()
 	{
-		return $this->hasMany('App\Models\DataPoint');
+		return $this->hasMany('App\Models\DataSet');
+	}
+
+	/**
+	 * Define the tracking table relationship
+	 *
+	 * @return mixed
+	 */
+	public function tracking()
+	{
+		return $this->hasOne('App\Models\Tracking');
 	}
 
 	/**

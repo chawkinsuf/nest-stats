@@ -7,13 +7,22 @@ class DataPoint extends Eloquent {
 	public $timestamps = false;
 
 	/**
-	 * Define the nests table relationship
+	 * Define the data_sets table relationship
 	 *
 	 * @return mixed
 	 */
-	public function devices()
+	public function dataSet()
 	{
-		return $this->belongsTo('App\Models\Device');
+		return $this->belongsTo('App\Models\DataSet');
 	}
 
+	/**
+	 * Use Carbon instances for the date field
+	 *
+	 * @return array
+	 */
+	public function getDates()
+	{
+		return array('date');
+	}
 }

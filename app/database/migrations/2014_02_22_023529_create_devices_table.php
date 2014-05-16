@@ -18,8 +18,8 @@ class CreateDevicesTable extends Migration {
 			$table->integer('user_id')->unsigned();
 			$table->string('serial', 100)->unique();
 			$table->string('name', 100);
+			$table->string('scale', 1);
 			$table->integer('postal');
-			$table->boolean('tracking');
 			$table->timestamps();
 
 			$table->foreign('user_id')->references('id')->on('users')
