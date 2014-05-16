@@ -243,7 +243,15 @@ class Nest {
                 return $infos;
             }
         }
-
+/*
+NEED TO CLEAR CACHE
+class stdClass#551 (2) {
+  public $cmd =>
+  string(12) "REINIT_STATE"
+  public $pod =>
+  string(5) "rts03"
+}
+*/
         list(, $structure) = explode('.', $this->last_status->link->{$serial_number}->structure);
         $manual_away = $this->last_status->structure->{$structure}->away;
         $mode = strtolower($this->last_status->device->{$serial_number}->current_schedule_mode);
