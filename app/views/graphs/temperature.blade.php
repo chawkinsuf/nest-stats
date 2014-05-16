@@ -5,11 +5,12 @@
 $(function() {
 	$('#data-sets').treeview({ data: {{ $dataSets }}, levels: 1, nodeIcon: 'glyphicon glyphicon-repeat', selectLeafOnly: true, noDeselect: true })
 	.on('nodeSelected', function(event, node) {
-		$.getJSON('{{ URL::to('graphs/data') }}/' + node.dataSetId, function( data ){
+		$.getJSON('{{ URL::to('graphs/data') }}/' + node.dataSetId )
+		.done( function( data ){
 
 			// Make our series data
 			var seriesData = formatSeriesData( data );
-
+			
 			// Update each series in the chart
 			$.each( seriesData.series, function( index, value ){
 				chart.series[ index ].setData( value.data, false );
@@ -17,6 +18,12 @@ $(function() {
 
 			// Redraw all at once
 			chart.redraw();
+
+			// Call update on the navigator series to make sure it displays properly
+			chart.series[ seriesData.series.length ].update( {}, true );
+		})
+		.fail( function(){
+			alertify.error( 'There was a problem loading this data set.' );
 		});
 	});
 
@@ -227,7 +234,8 @@ $(function() {
 		}
 	});
 
-	$.getJSON('{{ URL::to('graphs/data') }}', function( data ){
+	$.getJSON('{{ URL::to('graphs/data') }}' )
+	.done( function( data ){
 
 		// Make our series data
 		var seriesData = formatSeriesData( data );
@@ -242,6 +250,9 @@ $(function() {
 
 		// Render the chart
 		chart = new Highcharts.StockChart( chartOptions );
+	})
+	.fail( function(){
+		alertify.error( 'There was a problem loading the default data set.' );
 	});
 
 	function formatSeriesData( data ){
