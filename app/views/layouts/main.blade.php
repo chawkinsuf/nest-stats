@@ -19,6 +19,7 @@
 	{{ HTML::script('lib/bootstrap/js/bootstrap.min.js') }}
 	{{ HTML::script('lib/handlebars/handlebars.js') }}
 	{{ HTML::script('lib/alertify/js/alertify.min.js') }}
+	{{ HTML::script('lib/bootstrap-treeview/js/bootstrap-treeview.js') }}
 	{{ HTML::script('lib/highstock/highstock.js') }}
 	{{ HTML::script('lib/highstock/modules/exporting.js') }}
 	{{ HTML::script('js/jquery.ajaxform.js') }}
