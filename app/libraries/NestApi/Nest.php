@@ -467,10 +467,19 @@ class stdClass#551 (2) {
 
     /* Helper functions */
 
-    public function getStatus() {
+    public function getStatus($retry=true) {
         $status = $this->doGET("/v3/mobile/" . $this->user);
         if (!is_object($status)) {
             die("Error: Couldn't get status from NEST API: $status\n");
+        }
+        if (isset($status->cmd)) {
+            print "Got status command: $status->cmd";
+            var_dump( $status );
+            if ($status->cmd == 'REINIT_STATE' && $retry === true) {
+                $this->clear_cache();
+                $this->login();
+                return $this->getStatus(false);
+            }
         }
         $this->last_status = $status;
         $this->saveCache();
@@ -594,6 +603,10 @@ class stdClass#551 (2) {
 
     private function use_cache() {
         return file_exists($this->cookie_file) && file_exists($this->cache_file) && !empty($this->cache_expiration) && $this->cache_expiration > time();
+    }
+
+    private function clear_cache() {
+        unlink($this->cache_file);
     }
     
     private function loadCache() {
